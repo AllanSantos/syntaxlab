@@ -6,133 +6,65 @@ import { cn } from "@/lib/utils";
 interface WordSelectorProps {
   words1: string[];
   words2: string[];
-  sourceIndex: number | null;
-  targetIndex: number | null;
-  onSelectSource: (i: number) => void;
-  onSelectTarget: (i: number) => void;
+  explodeIndex: number | null;
+  originIndex: number | null;
+  resultIndex: number | null;
+  onSelectExplode: (i: number) => void;
+  onSelectOrigin: (i: number) => void;
+  onSelectResult: (i: number) => void;
   onConfirm: () => void;
   onBack: () => void;
 }
 
 export function WordSelector({
-  words1,
-  words2,
-  sourceIndex,
-  targetIndex,
-  onSelectSource,
-  onSelectTarget,
-  onConfirm,
-  onBack,
+  words1, words2, explodeIndex, originIndex, resultIndex,
+  onSelectExplode, onSelectOrigin, onSelectResult, onConfirm, onBack
 }: WordSelectorProps) {
-  const canAnimate = sourceIndex !== null && targetIndex !== null;
+  const ready = explodeIndex !== null && originIndex !== null && resultIndex !== null;
 
   return (
     <div className="flex flex-col gap-10">
-      <div>
-        <p className="text-xs tracking-[0.2em] uppercase text-stone-500 mb-6">
-          Passo 2 — Marque as palavras
-        </p>
-        <div className="flex flex-col gap-2 text-sm text-stone-400 leading-relaxed">
-          <p>
-            Na <span className="text-amber-400 font-medium">frase B</span>, clique na palavra que vai{" "}
-            <span className="text-amber-400 font-medium">voar e se transformar</span>{" "}
-            <span className="text-stone-600">(ex: storming)</span>
-          </p>
-          <p>
-            Na <span className="text-red-400 font-medium">frase A</span>, clique na palavra que vai{" "}
-            <span className="text-red-400 font-medium">explodir e ser substituída</span>{" "}
-            <span className="text-stone-600">(ex: went)</span>
-          </p>
-        </div>
-      </div>
-
       <div className="flex flex-col gap-8">
-        {/* Frase B primeiro — a palavra que voa */}
-        <WordRow
-          label="Frase B — palavra que vai voar"
-          labelColor="text-amber-400"
-          words={words2}
-          selectedIndex={sourceIndex}
-          onSelect={onSelectSource}
-          variant="source"
-        />
-        {/* Frase A — a palavra que explode */}
-        <WordRow
-          label="Frase A — palavra que vai explodir"
-          labelColor="text-red-400"
-          words={words1}
-          selectedIndex={targetIndex}
-          onSelect={onSelectTarget}
-          variant="target"
-        />
+        <WordRow label="1. Qual palavra vai EXPLODIR? 💥" words={words1} selected={explodeIndex} onSelect={onSelectExplode} color="text-red-400" theme="red" />
+        <WordRow label="2. Qual palavra vai VOAR? ✈️" words={words1} selected={originIndex} onSelect={onSelectOrigin} color="text-amber-400" theme="amber" />
+        <WordRow label="3. No que ela se TRANSFORMA? 🪄" words={words2} selected={resultIndex} onSelect={onSelectResult} color="text-amber-400" theme="amber" />
       </div>
 
-      {canAnimate && (
-        <div className="flex items-center gap-3 text-sm bg-white/[0.03] border border-white/[0.07] rounded-lg px-4 py-3">
-          <span className="text-amber-400 font-medium">{words2[sourceIndex!]}</span>
-          <span className="text-stone-600">voa até</span>
-          <span className="text-red-400 font-medium">{words1[targetIndex!]}</span>
-          <span className="text-stone-600">e vira</span>
-          <span className="text-amber-400 font-medium">{words2[sourceIndex!]}</span>
+      {ready && (
+        <div className="flex flex-wrap items-center gap-2 text-base bg-amber-400/5 border border-amber-400/10 rounded-xl px-6 py-4">
+          <span className="text-stone-400">A palavra</span>
+          <span className="text-amber-400 font-bold">{words1[originIndex]}</span>
+          <span className="text-stone-400">voa, explode</span>
+          <span className="text-red-400 font-bold line-through decoration-red-400/50">{words1[explodeIndex]}</span>
+          <span className="text-stone-400">e vira</span>
+          <span className="text-amber-400 font-bold underline decoration-amber-400/30">{words2[resultIndex]}</span>
         </div>
       )}
 
       <div className="flex gap-3">
-        <Button onClick={onConfirm} disabled={!canAnimate}>
-          Ver animação →
-        </Button>
-        <Button variant="ghost" onClick={onBack}>
-          ← Voltar
-        </Button>
+        <Button onClick={onConfirm} disabled={!ready}>Ver animação →</Button>
+        <Button variant="ghost" onClick={onBack}>← Voltar</Button>
       </div>
     </div>
   );
 }
 
-function WordRow({
-  label,
-  labelColor,
-  words,
-  selectedIndex,
-  onSelect,
-  variant,
-}: {
-  label: string;
-  labelColor: string;
-  words: string[];
-  selectedIndex: number | null;
-  onSelect: (i: number) => void;
-  variant: "source" | "target";
-}) {
+function WordRow({ label, words, selected, onSelect, color, theme }: any) {
   return (
     <div>
-      <p className={cn("text-xs tracking-widest uppercase mb-4", labelColor)}>
-        {label}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        {words.map((word, i) => {
-          const isSelected = selectedIndex === i;
-          return (
-            <button
-              key={i}
-              onClick={() => onSelect(i)}
-              className={cn(
-                "font-[family-name:var(--font-playfair)] text-2xl font-bold px-4 py-2 rounded-lg border transition-all duration-200",
-                "hover:scale-105 active:scale-95 cursor-pointer",
-                !isSelected &&
-                "text-white/70 border-white/10 bg-white/[0.03] hover:border-white/25 hover:text-white",
-                isSelected &&
-                variant === "source" &&
-                "text-amber-300 border-amber-400/50 bg-amber-400/10",
-                isSelected &&
-                variant === "target" &&
-                "text-red-300 border-red-500/50 bg-red-500/10"
-              )}
-            >
-              {word}
-            </button>
-          );
-        })}
+      <p className={cn("text-[10px] tracking-[0.2em] uppercase mb-4 font-bold", color)}>{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {words.map((w: string, i: number) => (
+          <button
+            key={i} onClick={() => onSelect(i)}
+            className={cn(
+              "px-4 py-2 rounded-lg border transition-all font-[family-name:var(--font-playfair)] text-xl font-bold",
+              selected === i
+                ? theme === "red" ? "bg-red-500/20 border-red-500 text-red-300" : "bg-amber-400/20 border-amber-400 text-amber-300"
+                : "bg-white/5 border-white/5 text-stone-500 hover:border-white/20 hover:text-white"
+            )}
+          >{w}</button>
+        ))}
       </div>
     </div>
   );

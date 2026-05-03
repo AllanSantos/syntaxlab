@@ -7,13 +7,13 @@ export type Step = "input" | "select" | "animate";
 
 export interface PhraseSwapState {
   step: Step;
-  phrase1: string;
-  phrase2: string;
+  phrase1: string; // Frase Original
+  phrase2: string; // Frase Final
   words1: string[];
   words2: string[];
-  sourceIndex: number | null;
-  targetIndex: number | null;
-  isAnimating: boolean;
+  explodeIndex: number | null;  // A que some (ex: took)
+  originIndex: number | null;   // A que voa (ex: picking)
+  resultIndex: number | null;   // O que se torna (ex: picked)
   animationKey: number;
 }
 
@@ -23,9 +23,9 @@ const initial: PhraseSwapState = {
   phrase2: "",
   words1: [],
   words2: [],
-  sourceIndex: null,
-  targetIndex: null,
-  isAnimating: false,
+  explodeIndex: null,
+  originIndex: null,
+  resultIndex: null,
   animationKey: 0,
 };
 
@@ -36,61 +36,47 @@ export function usePhraseSwap() {
     setState((s) => ({ ...s, phrase1, phrase2 }));
   }, []);
 
+  const swapPhrases = useCallback(() => {
+    setState((s) => ({ ...s, phrase1: s.phrase2, phrase2: s.phrase1 }));
+  }, []);
+
   const goToSelect = useCallback(() => {
     setState((s) => ({
       ...s,
       step: "select",
       words1: tokenize(s.phrase1),
       words2: tokenize(s.phrase2),
-      sourceIndex: null,
-      targetIndex: null,
+      explodeIndex: null,
+      originIndex: null,
+      resultIndex: null,
     }));
   }, []);
 
-  const selectSource = useCallback((index: number) => {
-    setState((s) => ({ ...s, sourceIndex: index }));
-  }, []);
-
-  const selectTarget = useCallback((index: number) => {
-    setState((s) => ({ ...s, targetIndex: index }));
-  }, []);
+  const selectExplode = (i: number) => setState(s => ({ ...s, explodeIndex: i }));
+  const selectOrigin = (i: number) => setState(s => ({ ...s, originIndex: i }));
+  const selectResult = (i: number) => setState(s => ({ ...s, resultIndex: i }));
 
   const goToAnimate = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      step: "animate",
-      isAnimating: false,
-      animationKey: s.animationKey + 1,
-    }));
+    setState((s) => ({ ...s, step: "animate", animationKey: s.animationKey + 1 }));
   }, []);
 
   const replay = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      isAnimating: false,
-      animationKey: s.animationKey + 1,
-    }));
+    setState((s) => ({ ...s, animationKey: s.animationKey + 1 }));
   }, []);
 
-  const setAnimating = useCallback((v: boolean) => {
-    setState((s) => ({ ...s, isAnimating: v }));
-  }, []);
-
-  const goBack = useCallback((to: Step) => {
-    setState((s) => ({ ...s, step: to }));
-  }, []);
-
-  const reset = useCallback(() => setState(initial), []);
+  const goBack = (to: Step) => setState((s) => ({ ...s, step: to }));
+  const reset = () => setState(initial);
 
   return {
     state,
     setPhrases,
+    swapPhrases,
     goToSelect,
-    selectSource,
-    selectTarget,
+    selectExplode,
+    selectOrigin,
+    selectResult,
     goToAnimate,
     replay,
-    setAnimating,
     goBack,
     reset,
   };

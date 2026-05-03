@@ -5,21 +5,16 @@ import { PhraseEditor } from "@/components/phrase-swap/PhraseEditor";
 import { WordSelector } from "@/components/phrase-swap/WordSelector";
 import { AnimationStage } from "@/components/phrase-swap/AnimationStage";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
 export default function PhraseSwapPage() {
   const {
-    state,
-    setPhrases,
-    goToSelect,
-    selectSource,
-    selectTarget,
-    goToAnimate,
-    replay,
-    goBack,
-    reset,
+    state, setPhrases, swapPhrases, goToSelect,
+    selectExplode, selectOrigin, selectResult,
+    goToAnimate, replay, goBack, reset
   } = usePhraseSwap();
 
-  const { step, phrase1, phrase2, words1, words2, sourceIndex, targetIndex, animationKey } = state;
+  const { step, words1, words2, explodeIndex, originIndex, resultIndex, animationKey, phrase1, phrase2 } = state;
 
   function handleConfirmPhrases(p1: string, p2: string) {
     setPhrases(p1, p2);
@@ -32,9 +27,12 @@ export default function PhraseSwapPage() {
         {/* Header */}
         <div className="mb-16">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-xs tracking-[0.3em] uppercase text-amber-400/70 font-medium">
+            <Link
+              href="/"
+              className="text-xs tracking-[0.3em] uppercase text-amber-400/70 font-medium hover:text-amber-400 transition-colors"
+            >
               SyntaxLab
-            </span>
+            </Link>
             <span className="w-1 h-1 rounded-full bg-stone-600" />
             <span className="text-xs tracking-[0.2em] uppercase text-stone-600">
               Phrase Swap
@@ -56,10 +54,10 @@ export default function PhraseSwapPage() {
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors duration-300 ${step === s
-                    ? "bg-amber-400 text-stone-950"
-                    : i < ["input", "select", "animate"].indexOf(step)
-                      ? "bg-amber-400/20 text-amber-400"
-                      : "bg-white/5 text-stone-600"
+                  ? "bg-amber-400 text-stone-950"
+                  : i < ["input", "select", "animate"].indexOf(step)
+                    ? "bg-amber-400/20 text-amber-400"
+                    : "bg-white/5 text-stone-600"
                   }`}
               >
                 {i + 1}
@@ -79,38 +77,34 @@ export default function PhraseSwapPage() {
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             {step === "input" && (
-              <PhraseEditor
-                initialPhrase1={phrase1}
-                initialPhrase2={phrase2}
-                onConfirm={handleConfirmPhrases}
-              />
+              <PhraseEditor initialPhrase1={phrase1} initialPhrase2={phrase2} onConfirm={(p1, p2) => { setPhrases(p1, p2); goToSelect(); }} onSwap={swapPhrases} />
             )}
 
             {step === "select" && (
               <WordSelector
-                words1={words1}
-                words2={words2}
-                sourceIndex={sourceIndex}
-                targetIndex={targetIndex}
-                onSelectSource={selectSource}
-                onSelectTarget={selectTarget}
-                onConfirm={goToAnimate}
-                onBack={() => goBack("input")}
+                words1={words1} words2={words2}
+                explodeIndex={explodeIndex} originIndex={originIndex} resultIndex={resultIndex}
+                onSelectExplode={selectExplode} onSelectOrigin={selectOrigin} onSelectResult={selectResult}
+                onConfirm={goToAnimate} onBack={() => goBack("input")}
               />
             )}
 
-            {step === "animate" && sourceIndex !== null && targetIndex !== null && (
-              <AnimationStage
-                words1={words1}
-                words2={words2}
-                sourceIndex={sourceIndex}
-                targetIndex={targetIndex}
-                animationKey={animationKey}
-                onReplay={replay}
-                onBack={() => goBack("select")}
-                onReset={reset}
-              />
-            )}
+            {step === "animate" &&
+              explodeIndex !== null &&
+              originIndex !== null &&
+              resultIndex !== null && (
+                <AnimationStage
+                  words1={words1}
+                  words2={words2}
+                  explodeIndex={explodeIndex}
+                  originIndex={originIndex}
+                  resultIndex={resultIndex}
+                  animationKey={animationKey}
+                  onReplay={replay}
+                  onBack={() => goBack("select")}
+                  onReset={reset}
+                />
+              )}
           </motion.div>
         </AnimatePresence>
       </div>

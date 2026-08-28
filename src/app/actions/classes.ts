@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
 // Professor cria uma turma
@@ -13,7 +13,7 @@ export async function createClassAction(formData: FormData) {
   const inviteCode = formData.get("inviteCode") as string;
   const cleanCode = inviteCode.trim().toUpperCase().replace(/\s+/g, '');
 
-  const { error } = await supabase.from("classes").insert([
+  const { error } = await getSupabase().from("classes").insert([
     {
       name: className,
       teacher_id: userId,
@@ -39,7 +39,7 @@ export async function enrollInClassAction(formData: FormData) {
   const inviteCode = formData.get("inviteCode") as string;
 
   // 1. Procura a turma pelo código de convite
-  const { data: classData, error: classError } = await supabase
+  const { data: classData, error: classError } = await getSupabase()
     .from("classes")
     .select("id")
     .eq("invite_code", inviteCode.trim().toUpperCase())
@@ -48,7 +48,7 @@ export async function enrollInClassAction(formData: FormData) {
   if (!classData || classError) throw new Error("Turma não encontrada");
 
   // 2. Matricula o aluno
-  const { error: enrollError } = await supabase.from("enrollments").insert([
+  const { error: enrollError } = await getSupabase().from("enrollments").insert([
     {
       student_id: userId,
       class_id: classData.id,

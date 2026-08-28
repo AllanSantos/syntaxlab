@@ -8,7 +8,7 @@ import { AnimationStage } from "@/components/phrase-swap/AnimationStage";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useSearchParams } from "next/navigation";
 
 function PhraseSwapContent() {
@@ -40,7 +40,7 @@ function PhraseSwapContent() {
     }
 
     setIsSaving(true);
-    const { error } = await supabase.from("phrase_swaps").insert([
+    const { error } = await getSupabase().from("phrase_swaps").insert([
       {
         user_id: userId,
         class_id: classId, // Agora é obrigatório!

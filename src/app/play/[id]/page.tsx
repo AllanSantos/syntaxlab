@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { AnimationStage } from "@/components/phrase-swap/AnimationStage";
 import Link from "next/link";
 
@@ -16,7 +16,7 @@ export default function PlayLessonPage() {
 
   useEffect(() => {
     async function fetchLesson() {
-      const { data } = await supabase
+      const { data } = await getSupabase()
         .from("phrase_swaps")
         .select("*")
         .eq("id", lessonId)

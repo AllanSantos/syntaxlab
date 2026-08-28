@@ -32,6 +32,8 @@ export function AnimationStage({
   const [phase, setPhase] = useState(0);
   const [mutationDone, setMutationDone] = useState(false);
 
+  const READ_DURATION_MS = 2500;
+  const EXPLODE_DURATION_MS = 1800;
   const FLOAT_DURATION_MS = 7000;
   const MUTATION_DURATION_MS = 5000;
 
@@ -39,10 +41,13 @@ export function AnimationStage({
     setPhase(0);
     setMutationDone(false);
 
-    const t1 = setTimeout(() => setPhase(1), 2500);
-    const t2 = setTimeout(() => setPhase(2), 3500);
-    const t3 = setTimeout(() => setPhase(3), 3500 + FLOAT_DURATION_MS);
-    const t4 = setTimeout(() => setMutationDone(true), 3500 + FLOAT_DURATION_MS + MUTATION_DURATION_MS);
+    const t1 = setTimeout(() => setPhase(1), READ_DURATION_MS);
+    const t2 = setTimeout(() => setPhase(2), READ_DURATION_MS + EXPLODE_DURATION_MS);
+    const t3 = setTimeout(() => setPhase(3), READ_DURATION_MS + EXPLODE_DURATION_MS + FLOAT_DURATION_MS);
+    const t4 = setTimeout(
+      () => setMutationDone(true),
+      READ_DURATION_MS + EXPLODE_DURATION_MS + FLOAT_DURATION_MS + MUTATION_DURATION_MS
+    );
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, [animationKey]);
@@ -94,11 +99,26 @@ export function AnimationStage({
     <div className="w-full flex flex-col items-center">
 
       {/* O PALCO DAS PALAVRAS */}
-      <div className="w-full max-w-3xl border border-white/5 bg-white/[0.02] rounded-3xl p-12 min-h-[280px] flex items-center justify-center shadow-2xl">
-        <div className="flex flex-wrap justify-center gap-x-4 gap-y-6 items-center text-5xl font-['Playfair_Display'] font-bold">
+      <motion.div
+        className="w-full max-w-3xl border border-white/5 bg-white/[0.02] rounded-3xl p-12 min-h-[280px] flex items-center justify-center shadow-2xl relative overflow-hidden"
+        animate={phase === 1 ? { x: [0, -10, 12, -7, 5, 0] } : { x: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <motion.div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          animate={{
+            backgroundColor: phase === 1
+              ? ["rgba(239,68,68,0)", "rgba(239,68,68,0.22)", "rgba(249,115,22,0.12)", "rgba(239,68,68,0)"]
+              : "rgba(239,68,68,0)",
+          }}
+          transition={{ duration: EXPLODE_DURATION_MS / 1000, ease: "easeOut" }}
+        />
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-6 items-center text-5xl font-['Playfair_Display'] font-bold relative z-10">
           {currentWords.map((item) => {
+            const isExploding = item.isExploding;
             const isFlying = item.id === "moving-word" && phase === 2;
             const isMutating = item.id === "moving-word" && phase === 3 && !mutationDone;
+            const isShocked = phase === 1 && !isExploding;
 
             return (
             <motion.span
@@ -106,12 +126,40 @@ export function AnimationStage({
               layoutId={item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{
-                opacity: item.isExploding ? 0 : 1,
-                scale: item.isExploding ? 0 : isFlying ? 1.45 : isMutating ? [1.45, 1.7, 1] : 1,
-                rotate: isFlying ? [0, -16, 14, -8, 0] : isMutating ? [0, 4, -3, 0] : 0,
-                y: isFlying ? [0, -55, -30, -65, 0] : 0,
-                filter: item.isExploding
-                  ? "blur(10px)"
+                opacity: isExploding ? [1, 1, 0.7, 0] : 1,
+                scale: isExploding
+                  ? [1, 1.85, 1.5, 0]
+                  : isFlying
+                    ? 1.45
+                    : isMutating
+                      ? [1.45, 1.7, 1]
+                      : isShocked
+                        ? [1, 1.06, 0.97, 1]
+                        : 1,
+                rotate: isExploding
+                  ? [0, -14, 22, 55]
+                  : isFlying
+                    ? [0, -16, 14, -8, 0]
+                    : isMutating
+                      ? [0, 4, -3, 0]
+                      : isShocked
+                        ? [0, -2, 2, 0]
+                        : 0,
+                x: isExploding ? [0, -6, 10, -20] : isShocked ? [0, -4, 4, -2, 0] : 0,
+                y: isExploding
+                  ? [0, -12, 8, -40]
+                  : isFlying
+                    ? [0, -55, -30, -65, 0]
+                    : isShocked
+                      ? [0, 3, -2, 0]
+                      : 0,
+                filter: isExploding
+                  ? [
+                      "blur(0px)",
+                      "blur(0px) drop-shadow(0 0 25px rgba(239,68,68,1))",
+                      "blur(6px) drop-shadow(0 0 50px rgba(249,115,22,1))",
+                      "blur(24px)",
+                    ]
                   : isFlying
                     ? "blur(0px) drop-shadow(0 0 30px rgba(251,191,36,1))"
                     : isMutating
@@ -121,24 +169,61 @@ export function AnimationStage({
                           "blur(0px)",
                         ]
                       : "blur(0px)",
-                color: item.morphed ? "#3b82f6" : item.isMorphing ? "#fbbf24" : "#ffffff",
+                color: isExploding
+                  ? ["#ffffff", "#ef4444", "#f97316", "#ef4444"]
+                  : item.morphed
+                    ? "#3b82f6"
+                    : item.isMorphing
+                      ? "#fbbf24"
+                      : "#ffffff",
               }}
               transition={{
                 layout: { duration: FLOAT_DURATION_MS / 1000, ease: [0.12, 1.45, 0.28, 1.05] },
-                opacity: { duration: 0.5 },
-                scale: {
-                  duration: isMutating ? MUTATION_DURATION_MS / 1000 : isFlying ? 0.5 : 0.5,
-                  ease: isMutating ? "easeInOut" : [0.34, 1.56, 0.64, 1],
-                },
-                rotate: {
-                  duration: isFlying ? FLOAT_DURATION_MS / 1000 : isMutating ? MUTATION_DURATION_MS / 1000 : 0.3,
-                  ease: "easeInOut",
-                },
-                y: { duration: FLOAT_DURATION_MS / 1000, ease: [0.22, 1.35, 0.42, 1] },
-                filter: { duration: isMutating ? MUTATION_DURATION_MS / 1000 : 0.6 },
-                color: { duration: isMutating ? MUTATION_DURATION_MS / 1000 : 0.6 },
+                opacity: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, times: [0, 0.15, 0.55, 1], ease: "easeIn" }
+                  : { duration: 0.5 },
+                scale: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, times: [0, 0.12, 0.35, 1], ease: [0.36, 0, 0.66, -0.2] }
+                  : isMutating
+                    ? { duration: MUTATION_DURATION_MS / 1000, ease: "easeInOut" }
+                    : isFlying
+                      ? { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }
+                      : isShocked
+                        ? { duration: 0.45, ease: "easeOut" }
+                        : { duration: 0.5 },
+                rotate: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, times: [0, 0.2, 0.5, 1], ease: "easeIn" }
+                  : isFlying
+                    ? { duration: FLOAT_DURATION_MS / 1000, ease: "easeInOut" }
+                    : isMutating
+                      ? { duration: MUTATION_DURATION_MS / 1000, ease: "easeInOut" }
+                      : isShocked
+                        ? { duration: 0.45, ease: "easeOut" }
+                        : { duration: 0.3 },
+                x: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, ease: "easeIn" }
+                  : isShocked
+                    ? { duration: 0.45, ease: "easeOut" }
+                    : { duration: 0.3 },
+                y: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, ease: "easeIn" }
+                  : isFlying
+                    ? { duration: FLOAT_DURATION_MS / 1000, ease: [0.22, 1.35, 0.42, 1] }
+                    : isShocked
+                      ? { duration: 0.45, ease: "easeOut" }
+                      : { duration: 0.3 },
+                filter: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, times: [0, 0.1, 0.4, 1], ease: "easeIn" }
+                  : isMutating
+                    ? { duration: MUTATION_DURATION_MS / 1000 }
+                    : { duration: 0.6 },
+                color: isExploding
+                  ? { duration: EXPLODE_DURATION_MS / 1000, times: [0, 0.1, 0.35, 1] }
+                  : isMutating
+                    ? { duration: MUTATION_DURATION_MS / 1000 }
+                    : { duration: 0.6 },
               }}
-              style={{ zIndex: isFlying || isMutating ? 50 : undefined }}
+              style={{ zIndex: isExploding ? 60 : isFlying || isMutating ? 50 : undefined }}
               className="inline-block"
             >
               {item.text}
@@ -146,7 +231,7 @@ export function AnimationStage({
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* A CAIXA DE EXPLICAÇÃO DINÂMICA (Histórico em Timeline) */}
       <div className="mt-8 p-8 border border-white/10 rounded-2xl bg-white/[0.01] max-w-2xl w-full min-h-[240px] flex flex-col justify-center gap-5">

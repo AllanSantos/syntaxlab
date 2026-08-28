@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
 export async function linkTeacherAction(formData: FormData) {
@@ -13,7 +13,7 @@ export async function linkTeacherAction(formData: FormData) {
   if (!teacherCode) return;
 
   // Tenta inserir a conexão no banco de dados
-  const { error } = await supabase.from("student_teacher_connections").insert([
+  const { error } = await getSupabase().from("student_teacher_connections").insert([
     {
       student_id: userId,
       teacher_id: teacherCode.trim(),

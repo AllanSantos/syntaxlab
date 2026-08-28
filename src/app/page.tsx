@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserButton } from '@clerk/nextjs';
 import { auth } from "@clerk/nextjs/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { createClassAction, enrollInClassAction } from "@/app/actions/classes";
 import { CreateClassForm } from "@/components/CreateClassForm";
 
@@ -15,7 +15,7 @@ export default async function HomePage() {
 
   // LOGICA DO PROFESSOR: Buscar as suas turmas e as lições de cada uma
   if (role === "teacher" && userId) {
-    const { data: classes } = await supabase
+    const { data: classes } = await getSupabase()
       .from("classes")
       .select(`*, phrase_swaps(*)`)
       .eq("teacher_id", userId);
@@ -24,7 +24,7 @@ export default async function HomePage() {
 
   // LOGICA DO ALUNO: Buscar turmas matriculadas e as lições delas
   if (role === "student" && userId) {
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await getSupabase()
       .from("enrollments")
       .select(`class_id, classes(name, invite_code, teacher_id, phrase_swaps(*))`)
       .eq("student_id", userId);

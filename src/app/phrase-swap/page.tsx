@@ -1,13 +1,17 @@
 "use client";
 
+import { useState, Suspense } from "react";
 import { usePhraseSwap } from "@/hooks/usePhraseSwap";
 import { PhraseEditor } from "@/components/phrase-swap/PhraseEditor";
 import { WordSelector } from "@/components/phrase-swap/WordSelector";
 import { AnimationStage } from "@/components/phrase-swap/AnimationStage";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
+import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
 
-export default function PhraseSwapPage() {
+function PhraseSwapContent() {
   const {
     state, setPhrases, swapPhrases, goToSelect,
     selectExplode, selectOrigin, selectResult,
@@ -15,6 +19,47 @@ export default function PhraseSwapPage() {
   } = usePhraseSwap();
 
   const { step, words1, words2, explodeIndex, originIndex, resultIndex, animationKey, phrase1, phrase2 } = state;
+
+  // Autenticação e Estado de Salvamento
+  const { userId } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const searchParams = useSearchParams();
+  const classId = searchParams.get("classId");
+
+  const handleSaveLesson = async () => {
+    if (!userId) {
+      alert("Você precisa fazer login para salvar esta aula!");
+      return;
+    }
+
+    // A NOVA TRAVA DE SEGURANÇA AQUI:
+    if (!classId) {
+      alert("⚠️ Atenção: Nenhuma turma selecionada!\nVolte ao Painel Inicial e clique em '+ Nova Atividade' dentro de uma turma específica para poder salvar.");
+      return;
+    }
+
+    setIsSaving(true);
+    const { error } = await supabase.from("phrase_swaps").insert([
+      {
+        user_id: userId,
+        class_id: classId, // Agora é obrigatório!
+        phrase_original: words1.join(" "),
+        phrase_final: words2.join(" "),
+        explode_index: explodeIndex,
+        origin_index: originIndex,
+        result_index: resultIndex,
+      },
+    ]);
+    setIsSaving(false);
+
+    if (error) {
+      alert("Erro ao salvar: " + error.message);
+    } else {
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    }
+  };
 
   function handleConfirmPhrases(p1: string, p2: string) {
     setPhrases(p1, p2);
@@ -69,45 +114,41 @@ export default function PhraseSwapPage() {
 
         {/* Step content */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
+          <motion.div key={step} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
             {step === "input" && (
               <PhraseEditor initialPhrase1={phrase1} initialPhrase2={phrase2} onConfirm={(p1, p2) => { setPhrases(p1, p2); goToSelect(); }} onSwap={swapPhrases} />
             )}
 
             {step === "select" && (
               <WordSelector
-                words1={words1} words2={words2}
-                explodeIndex={explodeIndex} originIndex={originIndex} resultIndex={resultIndex}
+                words1={words1} words2={words2} explodeIndex={explodeIndex} originIndex={originIndex} resultIndex={resultIndex}
                 onSelectExplode={selectExplode} onSelectOrigin={selectOrigin} onSelectResult={selectResult}
                 onConfirm={goToAnimate} onBack={() => goBack("input")}
               />
             )}
 
-            {step === "animate" &&
-              explodeIndex !== null &&
-              originIndex !== null &&
-              resultIndex !== null && (
-                <AnimationStage
-                  words1={words1}
-                  words2={words2}
-                  explodeIndex={explodeIndex}
-                  originIndex={originIndex}
-                  resultIndex={resultIndex}
-                  animationKey={animationKey}
-                  onReplay={replay}
-                  onBack={() => goBack("select")}
-                  onReset={reset}
-                />
-              )}
+            {step === "animate" && explodeIndex !== null && originIndex !== null && resultIndex !== null && (
+              <AnimationStage
+                words1={words1} words2={words2} explodeIndex={explodeIndex} originIndex={originIndex} resultIndex={resultIndex}
+                animationKey={animationKey} onReplay={replay} onBack={() => goBack("select")} onReset={reset}
+
+                // 3. Passamos as novas funções para a Animação
+                onSave={handleSaveLesson}
+                isSaving={isSaving}
+                savedSuccess={savedSuccess}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function PhraseSwapPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0f0e17] text-white flex items-center justify-center">Carregando estúdio...</div>}>
+      <PhraseSwapContent />
+    </Suspense>
   );
 }
